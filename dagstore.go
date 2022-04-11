@@ -274,6 +274,7 @@ func (d *DAGStore) Start(ctx context.Context) error {
 	for _, s := range d.shards {
 		switch s.state {
 		case ShardStateRecovering:
+			fallthrough
 		case ShardStateErrored:
 			switch d.config.RecoverOnStart {
 			case DoNotRecover:
