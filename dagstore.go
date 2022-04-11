@@ -273,6 +273,7 @@ func (d *DAGStore) Start(ctx context.Context) error {
 	var toRegister, toRecover []*Shard
 	for _, s := range d.shards {
 		switch s.state {
+		case ShardStateRecovering:
 		case ShardStateErrored:
 			switch d.config.RecoverOnStart {
 			case DoNotRecover:
@@ -282,6 +283,7 @@ func (d *DAGStore) Start(ctx context.Context) error {
 				s.recoverOnNextAcquire = true
 			case RecoverNow:
 				log.Infow("start: recovering failed shard immediately", "shard", s.key, "error", s.err)
+				s.state = ShardStateErrored
 				toRecover = append(toRecover, s)
 			}
 
@@ -469,7 +471,7 @@ func (d *DAGStore) RecoverShard(ctx context.Context, key shard.Key, out chan Sha
 		return fmt.Errorf("%s: %w", key.String(), ErrShardUnknown)
 	}
 	d.lk.Unlock()
-
+	s.state = ShardStateErrored
 	tsk := &task{op: OpShardRecover, shard: s, waiter: &waiter{ctx: ctx, outCh: out}}
 	return d.queueTask(tsk, d.externalCh)
 }
